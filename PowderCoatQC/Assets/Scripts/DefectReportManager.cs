@@ -1,47 +1,41 @@
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
-using UnityEngine.UI;
+using Firebase;
+using Firebase.Auth;
+using Firebase.Firestore;
+using System;
+using System.Collections.Generic;
 
 public class DefectReportManager : MonoBehaviour
 {
+    [Header("UI Elements")]
     public TMP_InputField defectTypeInput;
     public TMP_Dropdown rootCauseDropdown;
     public TMP_Dropdown severityDropdown;
-    public TMP_Text statusText;
-    public Image photoPreview;
+    public Button submitButton;
+    public Button backButton;
+    public TextMeshProUGUI statusText;
+
+    private FirebaseFirestore db;
+    private FirebaseAuth auth;
 
     void Start()
     {
-        statusText.text = "";
-        if (photoPreview != null)
-            photoPreview.gameObject.SetActive(false);
+        db = FirebaseFirestore.DefaultInstance;
+        auth = FirebaseAuth.DefaultInstance;
+
+        submitButton.onClick.AddListener(OnSubmitClick);
+        backButton.onClick.AddListener(GoBack);
     }
 
-    public void OnUploadPhotoClick()
-    {
-        NativeGallery.GetImageFromGallery((path) =>
-        {
-            if (path != null)
-            {
-                Texture2D texture = NativeGallery.LoadImageAtPath(path, 512);
-                if (texture != null)
-                {
-                    photoPreview.sprite = Sprite.Create(
-                        texture,
-                        new Rect(0, 0, texture.width, texture.height),
-                        new Vector2(0.5f, 0.5f)
-                    );
-                    photoPreview.gameObject.SetActive(true);
-                    statusText.text = "Photo uploaded!";
-                }
-            }
-        }, "Select a defect photo");
-    }
-
-    public void OnSubmitClick()
+    void OnSubmitClick()
     {
         string defectType = defectTypeInput.text;
+        string rootCause = rootCauseDropdown.options[rootCauseDropdown.value].text;
+        string severity = severityDropdown.options[severityDropdown.value].text;
+        string userId = auth.CurrentUser != null ? auth.CurrentUser.UserId : "unknown";
 
         if (string.IsNullOrEmpty(defectType))
         {
@@ -49,25 +43,35 @@ public class DefectReportManager : MonoBehaviour
             return;
         }
 
-        string rootCause = rootCauseDropdown.options[rootCauseDropdown.value].text;
-        string severity = severityDropdown.options[severityDropdown.value].text;
+        statusText.text = "Submitting...";
 
-        int count = PlayerPrefs.GetInt("DefectCount", 0);
-        PlayerPrefs.SetString("Defect_" + count + "_Type", defectType);
-        PlayerPrefs.SetString("Defect_" + count + "_Cause", rootCause);
-        PlayerPrefs.SetString("Defect_" + count + "_Severity", severity);
-        PlayerPrefs.SetString("Defect_" + count + "_Status", "Open");
-        PlayerPrefs.SetInt("DefectCount", count + 1);
-        PlayerPrefs.Save();
+        Dictionary<string, object> defect = new Dictionary<string, object>
+        {
+            { "type", defectType },
+            { "rootCause", rootCause },
+            { "severity", severity },
+            { "status", "pending" },
+            { "userId", userId },
+            { "timestamp", Timestamp.GetCurrentTimestamp() }
+        };
 
-        statusText.text = "Report saved successfully!";
-        defectTypeInput.text = "";
-
-        if (photoPreview != null)
-            photoPreview.gameObject.SetActive(false);
+        db.Collection("defects").AddAsync(defect).ContinueWith(task =>
+        {
+            UnityMainThreadDispatcher.Instance().Enqueue(() =>
+            {
+                if (task.IsCompleted)
+                {
+                    statusText.text = "Report submitted!";
+                }
+                else
+                {
+                    statusText.text = "Failed to submit!";
+                }
+            });
+        });
     }
 
-    public void OnBackClick()
+    void GoBack()
     {
         SceneManager.LoadScene("Dashboard");
     }

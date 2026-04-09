@@ -1100,9 +1100,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1411120327}
+      - m_Target: {fileID: 1411120322}
         m_TargetAssemblyTypeName: LoginManager, Assembly-CSharp
-        m_MethodName: OnLoginClick
+        m_MethodName: 
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2072,7 +2072,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LoginManager
   emailInput: {fileID: 986759544}
   passwordInput: {fileID: 1256023403}
-  errorText: {fileID: 779373449}
+  statusText: {fileID: 779373449}
+  loginButton: {fileID: 849064420}
 --- !u!1 &1432136971
 GameObject:
   m_ObjectHideFlags: 0

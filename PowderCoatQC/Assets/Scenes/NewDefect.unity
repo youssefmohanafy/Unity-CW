@@ -2214,8 +2214,9 @@ MonoBehaviour:
   defectTypeInput: {fileID: 1753461863}
   rootCauseDropdown: {fileID: 1584387533}
   severityDropdown: {fileID: 710047379}
+  submitButton: {fileID: 1029113167}
+  backButton: {fileID: 1330609517}
   statusText: {fileID: 250663329}
-  photoPreview: {fileID: 410659521}
 --- !u!1 &1178230057
 GameObject:
   m_ObjectHideFlags: 0
@@ -2653,19 +2654,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1330609518}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1138390578}
-        m_TargetAssemblyTypeName: DefectReportManager, Assembly-CSharp
-        m_MethodName: OnBackClick
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &1330609518
 MonoBehaviour:
   m_ObjectHideFlags: 0
