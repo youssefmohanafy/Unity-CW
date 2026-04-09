@@ -1,12 +1,14 @@
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 
 public class DefectHistoryManager : MonoBehaviour
 {
+    [Header("UI Elements")]
     public GameObject defectCardPrefab;
     public Transform contentParent;
-    public TMP_Text statusText;
+    public TextMeshProUGUI statusText;
 
     void Start()
     {
@@ -15,30 +17,28 @@ public class DefectHistoryManager : MonoBehaviour
 
     void LoadDefects()
     {
-        int count = PlayerPrefs.GetInt("DefectCount", 0);
+        // Placeholder data for testing
+        string[] types = { "Scratch", "Dent", "Chip" };
+        string[] causes = { "Human Error", "Machine Issue", "Material Defect" };
+        string[] severities = { "Low", "Medium", "High" };
 
-        if (count == 0)
+        foreach (string type in types)
         {
-            statusText.text = "No defects reported yet!";
-            return;
-        }
-
-        statusText.text = "";
-
-        for (int i = 0; i < count; i++)
-        {
-            string type = PlayerPrefs.GetString("Defect_" + i + "_Type");
-            string cause = PlayerPrefs.GetString("Defect_" + i + "_Cause");
-            string severity = PlayerPrefs.GetString("Defect_" + i + "_Severity");
-            string status = PlayerPrefs.GetString("Defect_" + i + "_Status");
-
             GameObject card = Instantiate(defectCardPrefab, contentParent);
-            TMP_Text cardText = card.GetComponentInChildren<TMP_Text>();
-            cardText.text = $"Type: {type}\nCause: {cause}\nSeverity: {severity}\nStatus: {status}";
+            card.GetComponentInChildren<TextMeshProUGUI>().text = 
+                "Type: " + type;
+
+            Button reviewBtn = card.GetComponentInChildren<Button>();
+            string capturedType = type;
+            reviewBtn.onClick.AddListener(() =>
+            {
+                PlayerPrefs.SetString("selectedDefectId", capturedType);
+                SceneManager.LoadScene("ManagerReview");
+            });
         }
     }
 
-    public void OnBackClick()
+    public void GoBack()
     {
         SceneManager.LoadScene("Dashboard");
     }
