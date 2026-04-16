@@ -60,6 +60,11 @@ public class LoginManager : MonoBehaviour
         StartCoroutine(LoginCoroutine(email, password));
     }
 
+    public void OnSignUpPressed()
+    {
+        statusText.text = "Please contact your administrator to create an account.";
+    }
+
     IEnumerator LoginCoroutine(string email, string password)
     {
         statusText.text = "Logging in...";
