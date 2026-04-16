@@ -1,85 +1,56 @@
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
-using Firebase;
 using Firebase.Auth;
-using System.Collections;
+using Firebase.Firestore;
+using System.Collections.Generic;
 
 public class LoginManager : MonoBehaviour
 {
-    [Header("UI Elements")]
     public TMP_InputField emailInput;
     public TMP_InputField passwordInput;
-    public TextMeshProUGUI statusText;
-    public Button loginButton;
+    public TMP_Text errorText;
 
-    private FirebaseAuth auth;
-    private bool firebaseReady = false;
+    void Start() => errorText.text = "";
 
-    void Start()
+    public async void OnLoginClick()
     {
-        loginButton.onClick.AddListener(OnLoginClick);
-        StartCoroutine(InitializeFirebase());
-    }
-
-    IEnumerator InitializeFirebase()
-    {
-        var task = FirebaseApp.CheckAndFixDependenciesAsync();
-        yield return new WaitUntil(() => task.IsCompleted);
-
-        if (task.Result == DependencyStatus.Available)
+        if (string.IsNullOrEmpty(emailInput.text) || string.IsNullOrEmpty(passwordInput.text))
         {
-            auth = FirebaseAuth.DefaultInstance;
-            firebaseReady = true;
-            statusText.text = "";
-        }
-        else
-        {
-            statusText.text = "Firebase error!";
-        }
-    }
-
-    void OnLoginClick()
-    {
-        if (!firebaseReady)
-        {
-            statusText.text = "Please wait...";
+            errorText.text = "Please fill in all fields!";
             return;
         }
 
-        string email = emailInput.text;
-        string password = passwordInput.text;
+        errorText.text = "Logging in...";
 
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+        try
         {
-            statusText.text = "Please enter email and password";
-            return;
-        }
+            var result = await FirebaseAuth.DefaultInstance.SignInWithEmailAndPasswordAsync(emailInput.text, passwordInput.text);
+            string userId = result.User.UserId;
 
-        StartCoroutine(LoginCoroutine(email, password));
-    }
+            var userDoc = await FirebaseFirestore.DefaultInstance.Collection("users").Document(userId).GetSnapshotAsync();
+            
+            if (!userDoc.Exists)
+            {
+                await FirebaseFirestore.DefaultInstance.Collection("users").Document(userId).SetAsync(new Dictionary<string, object>
+                {
+                    { "email", emailInput.text },
+                    { "role", "worker" }
+                });
+                PlayerPrefs.SetString("userRole", "worker");
+            }
+            else
+            {
+                string role = userDoc.ContainsField("role") ? userDoc.GetValue<string>("role") : "worker";
+                PlayerPrefs.SetString("userRole", role);
+            }
 
-    public void OnSignUpPressed()
-    {
-        statusText.text = "Please contact your administrator to create an account.";
-    }
-
-    IEnumerator LoginCoroutine(string email, string password)
-    {
-        statusText.text = "Logging in...";
-
-        var loginTask = auth.SignInWithEmailAndPasswordAsync(email, password);
-        yield return new WaitUntil(() => loginTask.IsCompleted);
-
-        if (loginTask.IsFaulted || loginTask.IsCanceled)
-        {
-            statusText.text = "Login failed. Check credentials.";
-        }
-        else
-        {
-            statusText.text = "Login successful!";
+            PlayerPrefs.Save();
             SceneManager.LoadScene("Dashboard");
+        }
+        catch
+        {
+            errorText.text = "Invalid credentials!";
         }
     }
 }

@@ -1,110 +1,101 @@
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
-using Firebase;
-using Firebase.Auth;
+using UnityEngine.UI;
 using Firebase.Firestore;
-using System.Collections;
 
 public class DefectHistoryManager : MonoBehaviour
 {
-    [Header("UI Elements")]
+    [Header("List UI")]
     public GameObject defectCardPrefab;
     public Transform contentParent;
-    public TextMeshProUGUI statusText;
+    public TMP_Text statusText;
 
-    private FirebaseFirestore db;
-    private FirebaseAuth auth;
+    [Header("Review Panel")]
+    public GameObject reviewPanel;
+    public TMP_Text defectInfoText;
+    public TMP_Text reviewStatusText;
+    public Button markDoneButton;
 
-    void Start()
+    private string selectedDefectId;
+    private string userRole;
+
+    async void Start()
     {
-        StartCoroutine(InitializeAndLoad());
+        userRole = PlayerPrefs.GetString("userRole", "worker");
+        reviewPanel.SetActive(false);
+        await LoadDefects();
     }
 
-    IEnumerator InitializeAndLoad()
+    async System.Threading.Tasks.Task LoadDefects()
     {
-        var task = FirebaseApp.CheckAndFixDependenciesAsync();
-        yield return new WaitUntil(() => task.IsCompleted);
-
-        if (task.Result == DependencyStatus.Available)
+        statusText.text = "Loading...";
+        try
         {
-            db = FirebaseFirestore.DefaultInstance;
-            auth = FirebaseAuth.DefaultInstance;
-            StartCoroutine(LoadDefects());
-        }
-    }
+            var snapshot = await FirebaseFirestore.DefaultInstance.Collection("defects").GetSnapshotAsync();
+            statusText.text = "";
 
-    IEnumerator LoadDefects()
-    {
-        if (auth.CurrentUser == null)
-        {
-            if (statusText != null)
-                statusText.text = "Not logged in!";
-            yield break;
-        }
-
-        string userId = auth.CurrentUser.UserId;
-
-        // Check user role first
-        var roleTask = db.Collection("users").Document(userId).GetSnapshotAsync();
-        yield return new WaitUntil(() => roleTask.IsCompleted);
-
-        string role = "worker";
-        if (roleTask.IsCompleted && roleTask.Result.Exists)
-        {
-            role = roleTask.Result.GetValue<string>("role");
-        }
-
-        // Load based on role
-        Query query;
-        if (role == "manager")
-        {
-            query = db.Collection("defects");
-        }
-        else
-        {
-            query = db.Collection("defects").WhereEqualTo("userId", userId);
-        }
-
-        var defectsTask = query.GetSnapshotAsync();
-        yield return new WaitUntil(() => defectsTask.IsCompleted);
-
-        if (defectsTask.IsCompleted && !defectsTask.IsFaulted)
-        {
-            foreach (DocumentSnapshot doc in defectsTask.Result.Documents)
+            foreach (var doc in snapshot.Documents)
             {
-                string type = doc.ContainsField("type") ? doc.GetValue<string>("type") : "-";
-                string severity = doc.ContainsField("severity") ? doc.GetValue<string>("severity") : "-";
-                string status = doc.ContainsField("status") ? doc.GetValue<string>("status") : "-";
-                string docId = doc.Id;
+                string type = doc.ContainsField("type") ? doc.GetValue<string>("type") : "";
+                string cause = doc.ContainsField("rootCause") ? doc.GetValue<string>("rootCause") : "";
+                string severity = doc.ContainsField("severity") ? doc.GetValue<string>("severity") : "";
+                string status = doc.ContainsField("status") ? doc.GetValue<string>("status") : "";
 
                 GameObject card = Instantiate(defectCardPrefab, contentParent);
-                card.GetComponentInChildren<TextMeshProUGUI>().text =
-                    "Type: " + type + "\nSeverity: " + severity + "\nStatus: " + status;
+                card.GetComponentInChildren<TMP_Text>().text = $"Type: {type}\nCause: {cause}\nSeverity: {severity}\nStatus: {status}";
 
-                Button reviewBtn = card.GetComponentInChildren<Button>();
+                string docId = doc.Id;
+                Button reviewBtn = card.transform.Find("ReviewButton").GetComponent<Button>();
 
-                // Only show review button for managers
-                if (role != "manager")
-                {
-                    reviewBtn.gameObject.SetActive(false);
-                }
+                if (userRole == "manager")
+                    reviewBtn.onClick.AddListener(() => OpenReviewPanel(docId, type, cause, severity, status));
                 else
-                {
-                    string capturedId = docId;
-                    reviewBtn.onClick.AddListener(() =>
-                    {
-                        PlayerPrefs.SetString("selectedDefectId", capturedId);
-                        SceneManager.LoadScene("ManagerReview");
-                    });
-                }
+                    reviewBtn.gameObject.SetActive(false);
             }
+
+            if (snapshot.Count == 0)
+                statusText.text = "No defects reported yet!";
+        }
+        catch (System.Exception e)
+        {
+            statusText.text = "Failed to load!";
+            Debug.LogError("Firestore error: " + e.Message);
         }
     }
 
-    public void GoBack()
+    void OpenReviewPanel(string docId, string type, string cause, string severity, string status)
     {
-        SceneManager.LoadScene("Dashboard");
+        selectedDefectId = docId;
+        defectInfoText.text = $"Type: {type}\nCause: {cause}\nSeverity: {severity}";
+        UpdateStatusUI(status);
+        reviewPanel.SetActive(true);
     }
+
+    public async void MarkAsDone()
+    {
+        if (string.IsNullOrEmpty(selectedDefectId)) return;
+        try
+        {
+            await FirebaseFirestore.DefaultInstance.Collection("defects")
+                .Document(selectedDefectId).UpdateAsync("status", "Reviewed");
+            UpdateStatusUI("Reviewed");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("Update error: " + e.Message);
+        }
+    }
+
+    public void CloseReviewPanel() => reviewPanel.SetActive(false);
+
+    void UpdateStatusUI(string status)
+    {
+        bool reviewed = status == "Reviewed";
+        reviewStatusText.text = reviewed ? "Status: Done!" : "Status: Pending";
+        reviewStatusText.color = reviewed ? Color.green : Color.yellow;
+        markDoneButton.interactable = !reviewed;
+    }
+
+    public void OnBackClick() => SceneManager.LoadScene("Dashboard");
 }

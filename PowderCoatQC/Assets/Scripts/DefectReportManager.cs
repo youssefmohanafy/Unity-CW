@@ -1,43 +1,40 @@
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
-using Firebase;
-using Firebase.Auth;
 using Firebase.Firestore;
-using System;
+using Firebase.Auth;
 using System.Collections.Generic;
 
 public class DefectReportManager : MonoBehaviour
 {
-    [Header("UI Elements")]
     public TMP_InputField defectTypeInput;
     public TMP_Dropdown rootCauseDropdown;
     public TMP_Dropdown severityDropdown;
-    public Button submitButton;
-    public Button backButton;
     public TextMeshProUGUI statusText;
-
-    private FirebaseFirestore db;
-    private FirebaseAuth auth;
+    public UnityEngine.UI.Image photoPreview;
 
     void Start()
     {
-        db = FirebaseFirestore.DefaultInstance;
-        auth = FirebaseAuth.DefaultInstance;
-
-        submitButton.onClick.AddListener(OnSubmitClick);
-        backButton.onClick.AddListener(GoBack);
+        statusText.text = "";
+        if (photoPreview != null) photoPreview.gameObject.SetActive(false);
     }
 
-    void OnSubmitClick()
+    public void OnUploadPhotoClick()
     {
-        string defectType = defectTypeInput.text;
-        string rootCause = rootCauseDropdown.options[rootCauseDropdown.value].text;
-        string severity = severityDropdown.options[severityDropdown.value].text;
-        string userId = auth.CurrentUser != null ? auth.CurrentUser.UserId : "unknown";
+        NativeGallery.GetImageFromGallery((path) =>
+        {
+            if (path == null) return;
+            Texture2D tex = NativeGallery.LoadImageAtPath(path, 512);
+            if (tex == null) return;
+            photoPreview.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+            photoPreview.gameObject.SetActive(true);
+            statusText.text = "Photo uploaded!";
+        }, "Select a defect photo");
+    }
 
-        if (string.IsNullOrEmpty(defectType))
+    public async void OnSubmitClick()
+    {
+        if (string.IsNullOrEmpty(defectTypeInput.text))
         {
             statusText.text = "Please enter defect type!";
             return;
@@ -45,34 +42,30 @@ public class DefectReportManager : MonoBehaviour
 
         statusText.text = "Submitting...";
 
-        Dictionary<string, object> defect = new Dictionary<string, object>
+        try
         {
-            { "type", defectType },
-            { "rootCause", rootCause },
-            { "severity", severity },
-            { "status", "pending" },
-            { "userId", userId },
-            { "timestamp", Timestamp.GetCurrentTimestamp() }
-        };
-
-        db.Collection("defects").AddAsync(defect).ContinueWith(task =>
-        {
-            UnityMainThreadDispatcher.Instance().Enqueue(() =>
+            var defect = new Dictionary<string, object>
             {
-                if (task.IsCompleted)
-                {
-                    statusText.text = "Report submitted!";
-                }
-                else
-                {
-                    statusText.text = "Failed to submit!";
-                }
-            });
-        });
+                { "type", defectTypeInput.text },
+                { "rootCause", rootCauseDropdown.options[rootCauseDropdown.value].text },
+                { "severity", severityDropdown.options[severityDropdown.value].text },
+                { "status", "Open" },
+                { "userId", FirebaseAuth.DefaultInstance.CurrentUser?.UserId ?? "unknown" },
+                { "timestamp", Timestamp.GetCurrentTimestamp() }
+            };
+
+            await FirebaseFirestore.DefaultInstance.Collection("defects").AddAsync(defect);
+
+            statusText.text = "Report submitted!";
+            defectTypeInput.text = "";
+            if (photoPreview != null) photoPreview.gameObject.SetActive(false);
+        }
+        catch (System.Exception e)
+        {
+            statusText.text = "Failed to submit!";
+            Debug.LogError("Firestore error: " + e.Message);
+        }
     }
 
-    void GoBack()
-    {
-        SceneManager.LoadScene("Dashboard");
-    }
+    public void OnBackClick() => SceneManager.LoadScene("Dashboard");
 }
