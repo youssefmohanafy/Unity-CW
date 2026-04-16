@@ -1,46 +1,60 @@
-# Unity-CW
 # PowderCoat QC
 
-PowderCoat QC is a cross-platform mobile application built with Unity 6.3 for Android and iOS. The app is designed for factory environments that use powder coating processes. It provides a digital solution for quality control inspectors and supervisors to report, manage, and review powder coating defects.
+**Student:** Youssef Mohamed Hanafy  
+**Student ID:** YH202000009  
+**Module:** KH6004CMD — Mobile Application Development  
+**University:** The Knowledge Hub Universities (Coventry University)
 
-Instead of using paper forms or verbal communication, workers can open the app, fill in a defect report, select the defect type, severity, and root cause, and optionally attach a photo. Managers can then log in and review all submitted reports, marking them as done when corrective action has been taken. All data is stored in Firebase Firestore and is accessible in real time by all authorised users.
+---
+
+## Description
+
+PowderCoat QC is a mobile quality control application built with Unity for factory environments. The app allows factory workers to report powder coating defects and enables managers to review and sign off on those reports. The app supports two user roles — **worker** and **manager** — with role-based UI that is automatically assigned upon first login via Firebase Authentication.
+
+Workers can submit defect reports including defect type, root cause, severity, and an optional photo. Managers can view all submitted defects and mark them as reviewed directly from the Defect History screen.
+
+---
 
 ## Features
 
-- Firebase Authentication login with role-based access (worker / manager)
-- Submit defect reports with type, severity, root cause, and photo
-- View defect history (workers see their own reports, managers see all)
-- Manager review screen to mark reports as done
-- Real-time data storage using Firebase Firestore
+- Firebase Authentication — email/password login
+- Role-based access control (worker / manager)
+- Submit defect reports with type, root cause, severity, and photo
+- View defect history loaded from Firestore
+- Manager review panel to mark defects as done
+- Cloud data persistence using Firebase Firestore
+- Photo upload using device gallery
 
-## Third-Party Plugins
+---
 
-| Plugin | Purpose |
-|--------|---------|
-| Firebase Unity SDK | User authentication and Firestore database |
-| NativeGallery (yasirkula) | Native photo picker for iOS and Android |
-| TextMeshPro | High-quality UI text rendering (built into Unity) |
+## Third Party Plugins
+
+- **Firebase Unity SDK** — Authentication and Cloud Firestore (firebase.google.com)
+- **NativeGallery** — Photo selection from device gallery (github.com/yasirkula/UnityNativeGallery)
+- **UnityMainThreadDispatcher** — Dispatching callbacks to the Unity main thread (github.com/PimDeWitte/UnityMainThreadDispatcher)
+- **TextMesh Pro** — Advanced text rendering (included with Unity)
+
+---
 
 ## Steps to Run the Project
 
-1. Clone this repository to your local machine
-2. Open **Unity Hub** and click **Open Project**, then select the cloned folder
-3. Make sure you are using **Unity 6.3 LTS** with iOS and Android build support installed
-4. Open **File > Build Profiles** and ensure all 6 scenes are listed in order: Login, Dashboard, NewDefect, DefectHistory, DefectDetails, ManagerReview
-5. Press the **Play** button in Unity to run the app in the editor using the Device Simulator
-6. To build for a real device, go to **File > Build Profiles**, select iOS or Android, and click **Build**
+1. Clone the repository from GitHub
+2. Open the project in **Unity 6.3.10f1 (LTS)** or later
+3. Make sure all Firebase plugin files are fully downloaded (if using iCloud, toggle visibility with `Cmd + Shift + .` in Finder and force download)
+4. Open **File → Build Settings** and ensure the following scenes are in order:
+   - Login
+   - Dashboard
+   - NewDefect
+   - DefectHistory
+5. Set the platform to **iOS** or **Android**
+6. Add a valid `google-services.json` (Android) or `GoogleService-Info.plist` (iOS) from your Firebase project to the `Assets` folder
+7. Press **Play** in the Unity Editor to run in the simulator, or build to a device
+8. Log in using credentials created manually in the Firebase Authentication console
 
-## Test Accounts
+---
 
-- **Worker:** worker@test.com / 123456
-- **Manager:** manager@test.com / 123456
+## Notes
 
-## Project Structure
-
-```
-Assets/
-  Scenes/       — All 6 app screens
-  Scripts/      — Manager scripts for each scene
-  Prefabs/      — DefectCard prefab for the defect list
-  Plugins/      — NativeGallery, Firebase SDK
-```
+- User roles are assigned automatically on first login (`worker` by default)
+- To promote a user to `manager`, update their document in **Firestore → users → {userId} → role** to `"manager"`
+- The app was developed and tested using the **Apple iPhone 13 Pro Max** simulator in Unity
