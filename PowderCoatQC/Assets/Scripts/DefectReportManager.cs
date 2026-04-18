@@ -10,7 +10,7 @@ public class DefectReportManager : MonoBehaviour
     public TMP_InputField defectTypeInput;
     public TMP_Dropdown rootCauseDropdown;
     public TMP_Dropdown severityDropdown;
-    public TextMeshPro statusText;
+    public TMP_Text statusText;
     public UnityEngine.UI.Image photoPreview;
 
     void Start()

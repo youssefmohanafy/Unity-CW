@@ -15,6 +15,7 @@ public class LoginManager : MonoBehaviour
 
     public async void OnLoginClick()
     {
+
         if (string.IsNullOrEmpty(emailInput.text) || string.IsNullOrEmpty(passwordInput.text))
         {
             errorText.text = "Please fill in all fields!";
