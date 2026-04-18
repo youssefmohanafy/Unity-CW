@@ -73,19 +73,18 @@ public class DefectHistoryManager : MonoBehaviour
     }
 
     public async void MarkAsDone()
-    {
-        if (string.IsNullOrEmpty(selectedDefectId)) return;
-        try
-        {
-            await FirebaseFirestore.DefaultInstance.Collection("defects")
-                .Document(selectedDefectId).UpdateAsync("status", "Reviewed");
-            UpdateStatusUI("Reviewed");
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError("Update error: " + e.Message);
-        }
-    }
+{
+    if (string.IsNullOrEmpty(selectedDefectId)) return;
+    await FirebaseFirestore.DefaultInstance.Collection("defects")
+        .Document(selectedDefectId).UpdateAsync("status", "Reviewed");
+    UpdateStatusUI("Reviewed");
+    CloseReviewPanel();
+    // Clear old cards first
+    foreach (Transform child in contentParent)
+        Destroy(child.gameObject);
+    // Reload fresh from Firestore
+    await LoadDefects();
+}
 
     public void CloseReviewPanel() => reviewPanel.SetActive(false);
 
